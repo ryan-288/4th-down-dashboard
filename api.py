@@ -188,8 +188,7 @@ def health():
     return {"status": status}
 
 
-@app.post("/decision")
-def make_decision(payload: DecisionRequest):
+def make_decision_logic(payload: DecisionRequest):
     if not artifacts.loaded():
         raise HTTPException(status_code=503, detail="Artifacts not loaded")
 
@@ -231,4 +230,9 @@ def make_decision(payload: DecisionRequest):
         "punt": punt_metrics,
         "recommendation": recommendation,
     }
+
+
+@app.post("/decision")
+def make_decision(payload: DecisionRequest):
+    return make_decision_logic(payload)
 

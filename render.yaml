@@ -1,18 +1,7 @@
 services:
-  # FastAPI Backend
+  # Combined API and Dashboard
   - type: web
-    name: 4th-down-decision-api
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.12
-    healthCheckPath: /health
-  
-  # Dash Frontend
-  - type: web
-    name: 4th-down-decision-app
+    name: 4th-down-dashboard
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: python apppreview.py

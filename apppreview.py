@@ -8,9 +8,16 @@ from typing import Any, Dict
 import dash
 from dash import Dash, Input, Output, State, dcc, html, no_update
 import plotly.graph_objects as go
-import requests
 
-API_URL = os.getenv("DECISION_API_URL", "http://localhost:8000")
+# Import API functions directly instead of using HTTP
+try:
+    from api import make_decision_logic, DecisionRequest
+    USE_DIRECT_API = True
+except ImportError:
+    # Fallback to HTTP if API not available
+    import requests
+    API_URL = os.getenv("DECISION_API_URL", "http://localhost:8000")
+    USE_DIRECT_API = False
 
 # Modern color scheme
 COLORS = {
@@ -611,19 +618,8 @@ def analyze_decision(
             "Please fill in all inputs before running the analysis.",
         )
 
-    if not API_URL:
-        return (
-            no_update,
-            no_update,
-            no_update,
-            no_update,
-            no_update,
-            no_update,
-            no_update,
-            "API URL not configured.",
-        )
-
-    payload = {
+    # Prepare request payload
+    payload_dict = {
         "ydstogo": float(ydstogo),
         "yardline_100": float(yardline),
         "qtr": int(quarter),
@@ -634,15 +630,30 @@ def analyze_decision(
     }
 
     try:
-        response = requests.post(
-            f"{API_URL.rstrip('/')}/decision", json=payload, timeout=8
-        )
-        response.raise_for_status()
-        data = response.json()
-    except requests.RequestException as exc:
-        return (no_update, no_update, no_update, no_update, no_update, no_update, no_update, f"API error: {exc}")
-    except ValueError as exc:
-        return (no_update, no_update, no_update, no_update, no_update, no_update, no_update, f"Parse error: {exc}")
+        if USE_DIRECT_API:
+            # Call API functions directly
+            request_obj = DecisionRequest(**payload_dict)
+            data = make_decision_logic(request_obj)
+        else:
+            # Fallback to HTTP
+            if not API_URL:
+                return (
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    "API URL not configured.",
+                )
+            response = requests.post(
+                f"{API_URL.rstrip('/')}/decision", json=payload_dict, timeout=8
+            )
+            response.raise_for_status()
+            data = response.json()
+    except Exception as exc:
+        return (no_update, no_update, no_update, no_update, no_update, no_update, no_update, f"Error: {exc}")
 
     go_metrics = data.get("go_for_it", {})
     fg_metrics = data.get("field_goal", {})
