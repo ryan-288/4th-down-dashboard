@@ -247,8 +247,15 @@ def punt_decision_metrics(
     yardline_100 = convert_coach_yardline_to_yardline_100(coach_yardline, team_side)
     tb_prob = float(interpolators.touchback(yardline_100))
     raw_landing_yl_100 = yardline_100 + gross_punt_yards
+    
+    # If punt goes into end zone, it's always a touchback
+    if raw_landing_yl_100 >= 100:
+        tb_prob = 1.0
+        pos_if_no_tb = 80  # Not used since tb_prob = 1.0, but set for clarity
+    else:
+        pos_if_no_tb = 100 - raw_landing_yl_100
+    
     pos_if_tb = 80
-    pos_if_no_tb = 100 - raw_landing_yl_100
     adjusted_fp = tb_prob * pos_if_tb + (1 - tb_prob) * pos_if_no_tb
 
     epa = float(interpolators.epa(adjusted_fp))
@@ -257,9 +264,15 @@ def punt_decision_metrics(
     opp_fg = float(interpolators.opp_fg(adjusted_fp))
     opp_no_score = float(interpolators.opp_no_score(adjusted_fp))
 
-    epa_no_tb = float(interpolators.epa(100 - raw_landing_yl_100))
-    epa_tb = float(interpolators.epa(80))
-    weighted_points = (epa_no_tb * (1 - tb_prob)) - (epa_tb * tb_prob)
+    # Only calculate epa_no_tb if punt doesn't go into end zone
+    if raw_landing_yl_100 >= 100:
+        # Punt goes into end zone - always touchback
+        epa_tb = float(interpolators.epa(80))
+        weighted_points = -epa_tb
+    else:
+        epa_no_tb = float(interpolators.epa(100 - raw_landing_yl_100))
+        epa_tb = float(interpolators.epa(80))
+        weighted_points = (epa_no_tb * (1 - tb_prob)) - (epa_tb * tb_prob)
 
     return {
         "epa": epa,
