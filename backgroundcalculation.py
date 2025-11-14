@@ -251,11 +251,11 @@ def punt_decision_metrics(
     # If punt goes into end zone, it's always a touchback
     if raw_landing_yl_100 >= 100:
         tb_prob = 1.0
-        pos_if_no_tb = 80  # Not used since tb_prob = 1.0, but set for clarity
+        pos_if_no_tb = 20  # Not used since tb_prob = 1.0, but set for clarity
     else:
         pos_if_no_tb = 100 - raw_landing_yl_100
     
-    pos_if_tb = 80
+    pos_if_tb = 20  # Touchback: opponent gets ball at their 20-yard line
     adjusted_fp = tb_prob * pos_if_tb + (1 - tb_prob) * pos_if_no_tb
 
     epa = float(interpolators.epa(adjusted_fp))
@@ -267,11 +267,11 @@ def punt_decision_metrics(
     # Only calculate epa_no_tb if punt doesn't go into end zone
     if raw_landing_yl_100 >= 100:
         # Punt goes into end zone - always touchback
-        epa_tb = float(interpolators.epa(80))
+        epa_tb = float(interpolators.epa(20))  # Touchback: opponent at their 20
         weighted_points = -epa_tb
     else:
         epa_no_tb = float(interpolators.epa(100 - raw_landing_yl_100))
-        epa_tb = float(interpolators.epa(80))
+        epa_tb = float(interpolators.epa(20))  # Touchback: opponent at their 20
         weighted_points = (epa_no_tb * (1 - tb_prob)) - (epa_tb * tb_prob)
 
     return {

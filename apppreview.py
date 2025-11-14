@@ -176,13 +176,44 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     [
-                                html.Label("Yardline to end zone", style={"fontWeight": "600", "marginBottom": "4px", "display": "block"}),
+                                html.Label("Field position", style={"fontWeight": "600", "marginBottom": "4px", "display": "block"}),
+                                html.Div(
+                                    [
+                                        html.Button("Your side", id="side-own", n_clicks=0, style={
+                                            "flex": "1",
+                                            "padding": "8px",
+                                            "margin": "2px",
+                                            "borderRadius": "4px",
+                                            "border": f"2px solid {COLORS['go']['primary']}",
+                                            "backgroundColor": COLORS['go']['light'],
+                                            "color": COLORS['go']['primary'],
+                                            "fontSize": "14px",
+                                            "fontWeight": "600",
+                                            "cursor": "pointer",
+                                        }),
+                                        html.Button("Opponent's side", id="side-opponent", n_clicks=0, style={
+                                            "flex": "1",
+                                            "padding": "8px",
+                                            "margin": "2px",
+                                            "borderRadius": "4px",
+                                            "border": f"2px solid {COLORS['border']}",
+                                            "backgroundColor": "#ffffff",
+                                            "color": COLORS['text'],
+                                            "fontSize": "14px",
+                                            "fontWeight": "600",
+                                            "cursor": "pointer",
+                                        }),
+                                    ],
+                                    style={"display": "flex", "gap": "4px", "width": "100%", "boxSizing": "border-box", "marginBottom": "8px"},
+                                ),
+                                dcc.Store(id="side-store", data="own"),
+                                html.Label("Yardline (1-50)", style={"fontWeight": "600", "marginBottom": "4px", "display": "block"}),
                         dcc.Input(
                             id="yard-line",
                             type="number",
                             value=40,
                             min=1,
-                            max=99,
+                            max=50,
                             step=1,
                                     style={
                                         "width": "100%",
@@ -577,6 +608,48 @@ def update_quarter(click1, click2, click3, click4, click5, current_quarter):
 
 
 @app.callback(
+    Output("side-store", "data"),
+    Output("side-own", "style"),
+    Output("side-opponent", "style"),
+    Input("side-own", "n_clicks"),
+    Input("side-opponent", "n_clicks"),
+    State("side-store", "data"),
+)
+def update_side(click_own, click_opponent, current_side):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        side = current_side or "own"
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        side = "own" if button_id == "side-own" else "opponent"
+    
+    base_style = {
+        "flex": "1",
+        "padding": "8px",
+        "margin": "2px",
+        "borderRadius": "4px",
+        "border": f"2px solid {COLORS['border']}",
+        "backgroundColor": "#ffffff",
+        "color": COLORS['text'],
+        "fontSize": "14px",
+        "fontWeight": "600",
+        "cursor": "pointer",
+    }
+    
+    active_style = {
+        **base_style,
+        "border": f"2px solid {COLORS['go']['primary']}",
+        "backgroundColor": COLORS['go']['light'],
+        "color": COLORS['go']['primary'],
+    }
+    
+    own_style = active_style if side == "own" else base_style
+    opponent_style = active_style if side == "opponent" else base_style
+    
+    return side, own_style, opponent_style
+
+
+@app.callback(
     Output("go-card", "children"),
     Output("field-goal-card", "children"),
     Output("punt-card", "children"),
@@ -588,6 +661,7 @@ def update_quarter(click1, click2, click3, click4, click5, current_quarter):
     Input("analyze-button", "n_clicks"),
     State("yards-to-go", "value"),
     State("yard-line", "value"),
+    State("side-store", "data"),
     State("quarter-store", "data"),
     State("time-left", "value"),
     State("score-diff", "value"),
@@ -599,6 +673,7 @@ def analyze_decision(
     n_clicks,
     ydstogo,
     yardline,
+    side,
     quarter,
     time_left,
     score_diff,
@@ -608,6 +683,7 @@ def analyze_decision(
     inputs = [
         ydstogo,
         yardline,
+        side,
         quarter,
         time_left,
         score_diff,
@@ -626,10 +702,18 @@ def analyze_decision(
             "Please fill in all inputs before running the analysis.",
         )
 
+    # Convert yardline to yardline_100 based on side
+    # If "own" side: yardline_100 = 100 - yardline (e.g., own 40 = 60 yards to end zone)
+    # If "opponent" side: yardline_100 = yardline (e.g., opponent 40 = 40 yards to end zone)
+    if side == "own":
+        yardline_100 = 100 - float(yardline)
+    else:
+        yardline_100 = float(yardline)
+
     # Prepare request payload
     payload_dict = {
         "ydstogo": float(ydstogo),
-        "yardline_100": float(yardline),
+        "yardline_100": yardline_100,
         "qtr": int(quarter),
         "half_seconds_remaining": compute_half_seconds(int(quarter), float(time_left)),
         "score_differential": float(score_diff),
