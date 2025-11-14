@@ -258,21 +258,20 @@ def punt_decision_metrics(
     pos_if_tb = 20  # Touchback: opponent gets ball at their 20-yard line
     adjusted_fp = tb_prob * pos_if_tb + (1 - tb_prob) * pos_if_no_tb
 
-    epa = float(interpolators.epa(adjusted_fp))
-    wpa = float(interpolators.wpa(adjusted_fp))
-    opp_td = float(interpolators.opp_td(adjusted_fp))
-    opp_fg = float(interpolators.opp_fg(adjusted_fp))
-    opp_no_score = float(interpolators.opp_no_score(adjusted_fp))
+    # ALL interpolators are keyed by yardline_100 (where you punt from)
+    # The model was trained by grouping punts by punting position and taking averages
+    # So we use yardline_100 for ALL lookups, not where the ball lands
+    epa = float(interpolators.epa(yardline_100))
+    wpa = float(interpolators.wpa(yardline_100))
+    opp_td = float(interpolators.opp_td(yardline_100))
+    opp_fg = float(interpolators.opp_fg(yardline_100))
+    opp_no_score = float(interpolators.opp_no_score(yardline_100))
 
-    # Only calculate epa_no_tb if punt doesn't go into end zone
-    if raw_landing_yl_100 >= 100:
-        # Punt goes into end zone - always touchback
-        epa_tb = float(interpolators.epa(20))  # Touchback: opponent at their 20
-        weighted_points = -epa_tb
-    else:
-        epa_no_tb = float(interpolators.epa(100 - raw_landing_yl_100))
-        epa_tb = float(interpolators.epa(20))  # Touchback: opponent at their 20
-        weighted_points = (epa_no_tb * (1 - tb_prob)) - (epa_tb * tb_prob)
+    # Weighted points calculation
+    # Since interpolators are keyed by punting position, we use yardline_100 for EPA
+    # The weighted_points represents the expected EPA difference based on touchback probability
+    epa_value = float(interpolators.epa(yardline_100))
+    weighted_points = -epa_value  # Negative because giving ball to opponent
 
     return {
         "epa": epa,
