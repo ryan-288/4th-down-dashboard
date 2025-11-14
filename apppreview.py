@@ -11,7 +11,12 @@ import plotly.graph_objects as go
 
 # Import API functions directly instead of using HTTP
 try:
-    from api import make_decision_logic, DecisionRequest
+    from api import make_decision_logic, DecisionRequest, load_artifacts, artifacts
+    # Load artifacts on startup
+    try:
+        load_artifacts()
+    except Exception as e:
+        print(f"Warning: Could not load artifacts on startup: {e}")
     USE_DIRECT_API = True
 except ImportError:
     # Fallback to HTTP if API not available
@@ -635,6 +640,9 @@ def analyze_decision(
     try:
         if USE_DIRECT_API:
             # Call API functions directly
+            # Ensure artifacts are loaded
+            if not artifacts.loaded():
+                load_artifacts()
             request_obj = DecisionRequest(**payload_dict)
             data = make_decision_logic(request_obj)
         else:
