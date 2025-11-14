@@ -1,0 +1,13 @@
+flask
+flask-cors
+joblib
+pandas
+numpy>=2.0
+scikit-learn
+xgboost>=2.1.3
+nfl_data_py
+fastapi
+uvicorn
+requests
+dash
+plotly
