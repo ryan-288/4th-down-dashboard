@@ -130,6 +130,9 @@ def format_card(metrics: Dict[str, Any], mapping: Dict[str, str], card_type: str
 app: Dash = dash.Dash(__name__)
 app.title = "4th Down Decision Tool"
 
+# Expose server for gunicorn
+server = app.server
+
 app.layout = html.Div(
     [
         html.Div(
