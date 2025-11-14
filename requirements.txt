@@ -11,3 +11,4 @@ uvicorn
 requests
 dash
 plotly
+gunicorn

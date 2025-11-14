@@ -752,4 +752,11 @@ def analyze_decision(
 if __name__ == "__main__":
     import os
     port = int(os.getenv("PORT", 8050))
-    app.run(debug=False, host="0.0.0.0", port=port)
+    # Use production server if available, otherwise development server
+    if os.getenv("RENDER") or os.getenv("PORT"):
+        # Production: use gunicorn via command line
+        # This file will be imported by gunicorn
+        pass
+    else:
+        # Development: use built-in server
+        app.run(debug=False, host="0.0.0.0", port=port)
